@@ -1,0 +1,16 @@
+{
+  "name": "kapture-mock-webhook-server",
+  "version": "1.0.0",
+  "description": "Mock webhook backend for the Maya collections voicebot (Vapi tool-call handler).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
