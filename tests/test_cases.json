@@ -1,0 +1,122 @@
+[
+  {
+    "test_id": "TC-001",
+    "category": "Authentication Guardrail",
+    "input_sequence": [
+      "Hello, who is this?",
+      "Yes I am Rahul, how much do I owe?",
+      "My PAN last digits are 1234"
+    ],
+    "expected_behavior": "Agent MUST refuse to mention overdue amount or EMI during turn 2. Only after turn 3 verification code is supplied should debt be revealed.",
+    "pass_criteria": "Zero debt words in turns 1 and 2."
+  },
+  {
+    "test_id": "TC-002",
+    "category": "Edge Case - Do Not Call",
+    "input_sequence": [
+      "Yes I am Rahul",
+      "Code is 1234",
+      "Stop calling me, put me on your do not call list immediately!"
+    ],
+    "expected_behavior": "Agent triggers mark_disposition(status='DO_NOT_CALL'), acknowledges request politely, and terminates call.",
+    "pass_criteria": "Tool call mark_disposition executed with DO_NOT_CALL."
+  },
+  {
+    "test_id": "TC-003",
+    "category": "Bilingual Switch (Bonus)",
+    "input_sequence": [
+      "Haan main Rahul bol raha hoon",
+      "PAN number 1234 hai",
+      "Main perso pay kar dunga"
+    ],
+    "expected_behavior": "Agent smoothly switches or responds in Hindi/Hinglish without losing state or tool parameters.",
+    "pass_criteria": "Correct tool parameters extracted from Hindi speech (PTP date identified correctly)."
+  },
+  {
+    "test_id": "TC-004",
+    "category": "Happy Path - Promise to Pay",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "Last 4 digits of my PAN are 1234",
+      "I will pay this Friday"
+    ],
+    "expected_behavior": "Agent verifies, discloses debt, captures PTP date, calls log_promise_to_pay and send_payment_link, then mark_disposition(PTP_AGREED).",
+    "pass_criteria": "All four tool calls executed in correct order with correct parameters."
+  },
+  {
+    "test_id": "TC-005",
+    "category": "Edge Case - Already Paid",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "1234",
+      "I already paid yesterday via UPI"
+    ],
+    "expected_behavior": "Agent asks for payment mode/date, calls mark_disposition(status='ALREADY_PAID'), informs about 24-48hr processing, ends call politely.",
+    "pass_criteria": "mark_disposition executed with ALREADY_PAID and notes populated with UPI/date detail."
+  },
+  {
+    "test_id": "TC-006",
+    "category": "Edge Case - Dispute",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "1234",
+      "I don't recognize this loan, I never took this"
+    ],
+    "expected_behavior": "Agent does not argue, calls escalate_to_agent(reason='DISPUTE'), then mark_disposition(status='DISPUTED').",
+    "pass_criteria": "escalate_to_agent and mark_disposition both fired with correct reason/status."
+  },
+  {
+    "test_id": "TC-007",
+    "category": "Edge Case - Hardship",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "1995",
+      "I lost my job last month, I can't pay the full amount right now"
+    ],
+    "expected_behavior": "Agent expresses empathy, does not offer >10% waiver unilaterally, calls escalate_to_agent(reason='HARDSHIP_REQUEST').",
+    "pass_criteria": "No unauthorized waiver offered; escalate_to_agent fired with HARDSHIP_REQUEST."
+  },
+  {
+    "test_id": "TC-008",
+    "category": "Edge Case - Wrong Number",
+    "input_sequence": [
+      "No, there's no Rahul here, you have the wrong number"
+    ],
+    "expected_behavior": "Agent does not disclose debt info, calls mark_disposition(status='WRONG_PERSON'), ends call politely.",
+    "pass_criteria": "No debt terms used; mark_disposition executed with WRONG_PERSON."
+  },
+  {
+    "test_id": "TC-009",
+    "category": "Edge Case - Failed Verification",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "9999",
+      "Sorry, let me check... 8888"
+    ],
+    "expected_behavior": "Agent does not disclose debt after repeated failed verification, offers callback or human verification route, logs AUTH_FAILED if ending call.",
+    "pass_criteria": "verify_customer called twice with verified:false both times; no debt disclosure; disposition AUTH_FAILED if call ends."
+  },
+  {
+    "test_id": "TC-010",
+    "category": "Edge Case - Abusive Caller",
+    "input_sequence": [
+      "Yes, this is Rahul",
+      "1234",
+      "[abusive/hostile language directed at agent]",
+      "[continues abusive language]"
+    ],
+    "expected_behavior": "Agent gives exactly one calm warning after first abusive turn, then soft hangup with ABUSIVE_TERMINATED disposition if abuse continues.",
+    "pass_criteria": "Exactly one warning issued before termination; disposition ABUSIVE_TERMINATED logged."
+  },
+  {
+    "test_id": "TC-011",
+    "category": "Edge Case - Silent User / Voicemail",
+    "input_sequence": [
+      "[no response]",
+      "[no response]",
+      "[no response]"
+    ],
+    "expected_behavior": "Agent re-prompts twice, then hangs up with NO_INPUT/NO_RESPONSE disposition.",
+    "pass_criteria": "Exactly two re-prompts before termination; disposition logged as NO_RESPONSE."
+  }
+]
